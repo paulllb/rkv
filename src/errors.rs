@@ -26,6 +26,15 @@ pub enum Errors {
 
     #[error("datafile is not found in database")]
     DataFileNotFound,
+
+    #[error("dir path is empty")]
+    DirPathEmpty,
+
+    #[error("data file size must be greater than 0")]
+    DataFileSizeIllegal,
+
+    #[error("create dir path all error")]
+    FailedToCreateDatabaseDir,
 }
 
 pub type Result<T> = result::Result<T, Errors>;

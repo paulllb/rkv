@@ -6,6 +6,7 @@ use crate::options::Options;
 use bytes::Bytes;
 use parking_lot::RwLock;
 use std::collections::HashMap;
+use std::fs;
 use std::sync::Arc;
 
 /// BitCask 存储引擎实例结构体
@@ -21,6 +22,28 @@ pub struct Engine {
 }
 
 impl Engine {
+    // 打开bitcask存储引擎实例
+    pub fn open(opts: Options) -> Result<Self> {
+        // 校验用户传递过来的配置项
+        if let Some(e) = check_options(&opts) {
+            return Err(e);
+        }
+        let options = opts.clone();
+        // 判断数据目录是否存在
+        let dir_path = options.dir_path.clone();
+        if !dir_path.is_dir() {
+            if let Err(e) = fs::create_dir_all(dir_path) {
+                return Err(Errors::FailedToCreateDatabaseDir);
+            }
+        }
+        Ok(Self {
+            options: Arc::new(Options {}),
+            active_file: Arc::new(()),
+            older_files: Arc::new(Default::default()),
+            index: Box::new(()),
+        })
+    }
+
     /// 存储 key/value 数据，key 不能为空
     pub fn put(&self, key: Bytes, value: Bytes) -> Result<()> {
         if key.is_empty() {
@@ -103,4 +126,15 @@ impl Engine {
             offset: write_off,
         })
     }
+}
+
+fn check_options(opts: &Options) -> Option<Errors> {
+    let dir_path = opts.dir_path.to_str();
+    if dir_path.is_none() || dir_path.unwrap().len() == 0 {
+        return Some(Errors::DirPathEmpty);
+    }
+    if opts.data_file_size <= 0 {
+        return Some(Errors::DataFileSizeIllegal);
+    }
+    None
 }
